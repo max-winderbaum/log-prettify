@@ -1,49 +1,79 @@
 import React, { Component } from "react"
-import logo from "./logo.svg"
 import "./App.css"
 
-class LambdaDemo extends Component {
-  constructor(props) {
-    super(props)
-    this.state = { loading: false, msg: null }
+import formatHighlight from "json-format-highlight";
+
+const customColorOptions = {
+  keyColor: "black",
+  numberColor: "blue",
+  stringColor: "#0B7500",
+  trueColor: "#00cc00",
+  falseColor: "#ff8080",
+  nullColor: "cornflowerblue",
+};
+
+function prettifyJson(input) {
+  let output = "";
+  let brackets = getBrackets(input);
+  for (let str of brackets) {
+    try {
+      let jsonObj = JSON.parse(str);
+      output += formatHighlight(jsonObj, customColorOptions) + "\n";
+    } catch (e) {
+      try {
+        let jsonObj = JSON.parse(formatJson(str));
+        output += formatHighlight(jsonObj, customColorOptions) + "\n";
+      } catch (e) {
+        output += str + "\n";
+      }
+    }
   }
+  return formatHtml(output);
+}
 
-  handleClick = api => e => {
-    e.preventDefault()
+function formatJson(str) {
+  return str.replace(/'/g, '"');
+}
 
-    this.setState({ loading: true })
-    fetch("/.netlify/functions/" + api)
-      .then(response => response.json())
-      .then(json => this.setState({ loading: false, msg: json.msg }))
+function formatHtml(str) {
+  return str
+    .replace(/\n/g, "<br>")
+    .replace(/\\n/g, "<br>")
+    .replace(/\\"/g, '"');
+}
+
+function getBrackets(str) {
+  const result = []; // create an empty array to store the results
+  const regex = /([.*?])|({.*?})|([^[]{}+)/g; // define a regular expression that matches any text between [], or {}, or any text that is not a bracket
+  let match; // create a variable to store each match
+  while ((match = regex.exec(str))) {
+    // loop through all matches in the string
+    result.push(match[0]); // push each match to the result array
   }
-
-  render() {
-    const { loading, msg } = this.state
-
-    return (
-      <p>
-        <button onClick={this.handleClick("hello")}>{loading ? "Loading..." : "Call Lambda"}</button>
-        <button onClick={this.handleClick("async-dadjoke")}>{loading ? "Loading..." : "Call Async Lambda"}</button>
-        <br />
-        <span>{msg}</span>
-      </p>
-    )
-  }
+  return result; // return the result array
 }
 
 class App extends Component {
+  constructor(props) {
+    super(props);
+    this.divRef = React.createRef();
+  }
+
+  componentDidMount() {
+    navigator.permissions.query({ name: "clipboard-read" }).then((result) => {
+      // If permission is granted or prompt
+      if (result.state === "granted" || result.state === "prompt") {
+        // Read the clipboard
+        navigator.clipboard.readText().then((text) => {
+          let out = prettifyJson(text);
+          this.divRef.current.innerHTML = out;
+        });
+      }
+    });
+  }
+
   render() {
-    return (
-      <div className="App">
-        <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <p>
-            Edit <code>src/App.js</code> and save to reload.
-          </p>
-          <LambdaDemo />
-        </header>
-      </div>
-    )
+    return <div className="App" ref={this.divRef}></div>;
   }
 }
 
