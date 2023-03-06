@@ -2,6 +2,7 @@ import React, { Component } from "react"
 import "./App.css"
 
 import formatHighlight from "json-format-highlight";
+import jsonParse from "json-parse-even-better-errors";
 
 const customColorOptions = {
   keyColor: "black",
@@ -15,15 +16,22 @@ const customColorOptions = {
 function prettifyJson(input) {
   let output = "";
   let brackets = getBrackets(input);
+  console.log(input)
+  console.log(brackets);
   for (let str of brackets) {
+    console.log("Trying string", str);
     try {
-      let jsonObj = JSON.parse(str);
+      let jsonObj = jsonParse(str);
       output += formatHighlight(jsonObj, customColorOptions) + "\n";
+      console.log("Success")
     } catch (e) {
+      console.log("Trying formatting the string like this:", formatJson(str), e);
       try {
-        let jsonObj = JSON.parse(formatJson(str));
+        let jsonObj = jsonParse(formatJson(str));
         output += formatHighlight(jsonObj, customColorOptions) + "\n";
+        console.log("Success")
       } catch (e) {
+        console.log("Outputting the regular string", e, "\n")
         output += str + "\n";
       }
     }
@@ -32,7 +40,10 @@ function prettifyJson(input) {
 }
 
 function formatJson(str) {
-  return str.replace(/'/g, '"');
+  return str
+    .replace(/(?=[^\\])"/g, '\\"')
+    .replace(/'/g, '"')
+    .replace(/\n/g, "\\n");
 }
 
 function formatHtml(str) {
@@ -44,7 +55,7 @@ function formatHtml(str) {
 
 function getBrackets(str) {
   const result = []; // create an empty array to store the results
-  const regex = /([.*?])|({.*?})|([^[]{}+)/g; // define a regular expression that matches any text between [], or {}, or any text that is not a bracket
+  const regex = /(\[.*?\])|({.*?})|([^\[{}\]]+)/g; // define a regular expression that matches any text between [], or {}, or any text that is not a bracket
   let match; // create a variable to store each match
   while ((match = regex.exec(str))) {
     // loop through all matches in the string
