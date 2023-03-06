@@ -27,8 +27,9 @@ function prettifyJson(input) {
     } catch (e) {
       console.log("Trying formatting the string like this:", formatJson(str), e);
       try {
-        let jsonObj = jsonParse(formatJson(str));
-        output += formatHighlight(jsonObj, customColorOptions) + "\n";
+        eval(`window.json = ${str}`)
+
+        output += formatHighlight(window.json, customColorOptions) + "\n";
         console.log("Success")
       } catch (e) {
         console.log("Outputting the regular string", e, "\n")
