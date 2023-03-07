@@ -47,7 +47,7 @@ function prettifyJson(input) {
 
     for (let strategy of strategies) {
       try {
-        let jsonObj = strategy.func(str);
+        let jsonObj = strategy.func(preFormatString(str));
         const formattedString = formatHighlight(jsonObj, customColorOptions);
         output += formattedString + "\n";
         console.log("Success with strategy", strategy.name);
@@ -87,9 +87,13 @@ function formatHtml(str) {
   return str
     .replace(/\n/g, "<br>")
     .replace(/\\n/g, "<br>")
-    .replace(/<|>/g, (match) => (match === "<" ? "&lt;" : "&gt;"))
-    .replace(/&/g, "&amp;")
     .replace(/\\"/g, '"');
+}
+
+function preFormatString(str) {
+  return str
+    .replace(/<|>/g, (match) => (match === "<" ? "&lt;" : "&gt;"))
+    .replace(/&/g, "&amp;");
 }
 
 function getBrackets(str) {
