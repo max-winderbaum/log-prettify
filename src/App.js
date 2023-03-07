@@ -120,6 +120,9 @@ function getBrackets(str) {
       currentString += str[i]; // add the current character to the current string
     }
   }
+  if (currentString.length > 1) {
+    result.push(currentString);
+  }
   return result;
 }
 
