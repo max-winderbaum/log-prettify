@@ -87,6 +87,8 @@ function formatHtml(str) {
   return str
     .replace(/\n/g, "<br>")
     .replace(/\\n/g, "<br>")
+    .replace(/<|>/g, (match) => (match === "<" ? "&lt;" : "&gt;"))
+    .replace(/&/g, "&amp;")
     .replace(/\\"/g, '"');
 }
 
