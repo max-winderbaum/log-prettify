@@ -36,7 +36,7 @@ const strategies = [
   },
 ];
 
-function prettifyJson(input) {
+function prettifyJson(input, filter) {
   let output = "";
   let brackets = getBrackets(input);
   console.log(input);
@@ -48,7 +48,8 @@ function prettifyJson(input) {
     for (let strategy of strategies) {
       try {
         let jsonObj = strategy.func(preFormatString(str));
-        const formattedString = formatHighlight(jsonObj, customColorOptions);
+        let filteredJson = filterJSON(jsonObj, filter);
+        const formattedString = formatHighlight(filteredJson, customColorOptions);
         output += formattedString + "\n";
         console.log("Success with strategy", strategy.name);
         console.log("formatted string", formattedString);
@@ -63,17 +64,61 @@ function prettifyJson(input) {
     }
     if (!success) {
       console.log("Outputting the regular string", "\n");
-      output += formatRegularString(str) + "\n";
+      if (filter && str.includes(filter)) {
+        output += formatRegularString(str) + "\n";
+      }
+      else if (!filter) {
+        output += formatRegularString(str) + "\n";
+      }
     }
     output += "<hr>";
   }
   return formatHtml(output);
 }
 
+function filterJSON(obj, searchString) {
+  if (!searchString) {
+    return obj;
+  }
+
+  if (typeof obj === "string") {
+    const lines = obj.split("\n");
+    const matchingLines = lines.filter((line) => line.includes(searchString));
+    return matchingLines.length > 0 ? matchingLines.join("\n") : undefined;
+  }
+
+  if (Array.isArray(obj)) {
+    const newArray = obj
+      .map((item) => filterJSON(item, searchString))
+      .filter((item) => item !== undefined);
+    return newArray.length > 0 ? newArray : undefined;
+  }
+
+  if (typeof obj === "object" && obj !== null) {
+    const newObj = Object.entries(obj)
+      .map(([key, value]) => {
+        if (key.includes(searchString)) {
+          return [key, value];
+        }
+
+        const reducedValue = filterJSON(value, searchString);
+        return reducedValue !== undefined ? [key, reducedValue] : undefined;
+      })
+      .filter((entry) => entry !== undefined)
+      .reduce((acc, [key, value]) => {
+        acc[key] = value;
+        return acc;
+      }, {});
+
+    return Object.keys(newObj).length > 0 ? newObj : undefined;
+  }
+
+  return undefined;
+}
+
+
 function formatRegularString(str) {
-  return str
-    .trimLeft()
-    .replace(/\n +/g, "\n");
+  return str.trimLeft().replace(/\n +/g, "\n");
 }
 
 function formatJson(str) {
@@ -136,23 +181,49 @@ class App extends Component {
   constructor(props) {
     super(props);
     this.divRef = React.createRef();
+    this.state = {
+      filter: "",
+    };
   }
 
   componentDidMount() {
+    this.parseClipboard();
+  }
+
+  parseClipboard = (filter) => {
     navigator.permissions.query({ name: "clipboard-read" }).then((result) => {
-      // If permission is granted or prompt
       if (result.state === "granted" || result.state === "prompt") {
-        // Read the clipboard
         navigator.clipboard.readText().then((text) => {
-          let out = prettifyJson(text);
+          let out = prettifyJson(text, filter);
           this.divRef.current.innerHTML = out;
         });
       }
     });
-  }
+  };
+
+  handleKeyDown = (event) => {
+    if (event.key === "Enter") {
+      this.parseClipboard(this.state.filter);
+    }
+  };
+
+  handleChange = (event) => {
+    this.setState({ filter: event.target.value });
+  };
 
   render() {
-    return <pre className="App" ref={this.divRef}></pre>;
+    return (
+      <>
+        <input
+          type="text"
+          placeholder="Filter"
+          onChange={this.handleChange}
+          onKeyDown={this.handleKeyDown}
+          style={{ marginBottom: "1rem" }}
+        />
+        <pre className="App" ref={this.divRef}></pre>
+      </>
+    );
   }
 }
 
